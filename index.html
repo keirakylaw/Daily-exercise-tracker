@@ -57,7 +57,7 @@
                 </button>
             </div>
 
-            <!-- 新周期按鈕（當完成30天時顯示） -->
+            <!-- 新周期按鈕 -->
             <div id="newCycleBanner" class="hidden bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4 rounded-xl shadow-md text-center">
                 <h3 class="font-bold text-base mb-1">🎉 恭喜完成本輪 30 天訓練！</h3>
                 <p class="text-xs text-emerald-100 mb-3">你可以將本輪數據歸檔保存，並開始全新一輪的挑戰！</p>
@@ -77,23 +77,16 @@
         <!-- 分頁 2：日曆檢視 -->
         <div id="view-calendar" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <!-- 日曆標題控制 -->
                 <div class="flex justify-between items-center mb-4">
                     <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold">◀ 上月</button>
                     <h2 id="calendarMonthTitle" class="font-bold text-slate-700 text-base">2026年11月</h2>
                     <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold">下月 ▶</button>
                 </div>
-
-                <!-- 星期標題 -->
                 <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-2">
                     <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
                 </div>
-
-                <!-- 日曆格子 -->
                 <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
             </div>
-
-            <!-- 當日詳情卡片 -->
             <div id="calendarDayDetail" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <h3 class="text-xs font-bold text-slate-400 mb-1">📅 點擊上方日曆日期查看記錄</h3>
                 <p class="text-sm text-slate-600">請點選日曆中有打卡標記的日子以查看詳情。</p>
@@ -111,23 +104,19 @@
                     ✏️ 編輯管理
                 </button>
             </div>
-            <div id="archiveList" class="space-y-3">
-                <!-- 動態加載 -->
-            </div>
+            <div id="archiveList" class="space-y-3"></div>
         </div>
 
     </main>
 
-    <!-- 歷史紀錄詳情彈窗 (Modal) -->
-    <div id="archiveDetailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+    <!-- 歷史紀錄詳情彈窗 -->
+    <div id="archiveDetailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-xl overflow-hidden">
             <div class="p-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white flex justify-between items-center">
                 <h3 id="modalTitle" class="font-bold text-base">周期詳情</h3>
                 <button onclick="closeArchiveModal()" class="text-white/80 hover:text-white text-xl font-bold px-2">&times;</button>
             </div>
-            <div id="modalBody" class="p-4 overflow-y-auto space-y-2 text-xs">
-                <!-- 動態填入30天明細 -->
-            </div>
+            <div id="modalBody" class="p-4 overflow-y-auto space-y-2 text-xs"></div>
             <div class="p-3 border-t border-slate-100 bg-slate-50 text-right">
                 <button onclick="closeArchiveModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs">關閉</button>
             </div>
@@ -155,15 +144,12 @@
         let currentTab = 'tracker';
         let isArchiveEditMode = false;
         
-        // 日曆檢視用變數
         let calYear = new Date().getFullYear();
-        let calMonth = new Date().getMonth(); // 0-11
+        let calMonth = new Date().getMonth();
 
         function loadProgress() {
             const saved = localStorage.getItem(STORAGE_KEY_CURRENT);
-            if (saved) {
-                try { return JSON.parse(saved); } catch (e) {}
-            }
+            if (saved) { try { return JSON.parse(saved); } catch (e) {} }
             let initial = {};
             planData.forEach(item => { initial[item.day] = { completed: false, date: '' }; });
             return initial;
@@ -171,9 +157,7 @@
 
         function loadArchives() {
             const saved = localStorage.getItem(STORAGE_KEY_ARCHIVE);
-            if (saved) {
-                try { return JSON.parse(saved); } catch (e) {}
-            }
+            if (saved) { try { return JSON.parse(saved); } catch (e) {} }
             return [];
         }
 
@@ -183,15 +167,24 @@
         function saveProgress() {
             localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(progressState));
             const now = new Date();
-            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            document.getElementById('saveStatus').innerText = `● 已自動保存 (${timeStr})`; }  function saveArchives() { localStorage.setItem(STORAGE_KEY_ARCHIVE, JSON.stringify(archiveList)); }  function getTodayString() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('saveStatus').innerText = '● 已自動保存 (' + timeStr + ')';
         }
 
-        // 分頁切換
+        function saveArchives() {
+            localStorage.setItem(STORAGE_KEY_ARCHIVE, JSON.stringify(archiveList));
+        }
+
+        function getTodayString() {
+            const now = new Date();
+            return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        }
+
         function switchTab(tab) {
             currentTab = tab;
             ['tracker', 'calendar', 'archive'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab); const btn = document.getElementById(`tab-${t}`);
+                document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById('tab-' + t);
                 if (t === tab) {
                     btn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-white text-orange-600 shadow-sm transition";
                 } else {
@@ -224,8 +217,25 @@
 
         function filterDays(filter) {
             currentFilter = filter;
-            document.getElementById('btn-all').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`;
-            document.getElementById('btn-active').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'active' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`; renderTracker(); }  // 開始新周期（歸檔當前） function startNewCycle() { if (confirm("確定要將當前周期歸檔，並開始新的一輪 30 天訓練嗎？")) { let completedCount = 0; let totalStepsCount = 0; planData.forEach(item => { if (progressState[item.day]?.completed) { completedCount++; if (item.type === 'steps') totalStepsCount += item.count; } });  const archiveItem = { id: Date.now(), title: `第 ${archiveList.length + 1} 輪周期`,
+            document.getElementById('btn-all').className = "text-xs px-3 py-1.5 rounded-lg font-medium transition " + (filter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600');
+            document.getElementById('btn-active').className = "text-xs px-3 py-1.5 rounded-lg font-medium transition " + (filter === 'active' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600');
+            renderTracker();
+        }
+
+        function startNewCycle() {
+            if (confirm("確定要將當前周期歸檔，並開始新的一輪 30 天訓練嗎？")) {
+                let completedCount = 0;
+                let totalStepsCount = 0;
+                planData.forEach(item => {
+                    if (progressState[item.day] && progressState[item.day].completed) {
+                        completedCount++;
+                        if (item.type === 'steps') totalStepsCount += item.count;
+                    }
+                });
+
+                const archiveItem = {
+                    id: Date.now(),
+                    title: '第 ' + (archiveList.length + 1) + ' 輪周期',
                     endDate: getTodayString(),
                     completedCount: completedCount,
                     totalSteps: totalStepsCount,
@@ -235,7 +245,6 @@
                 archiveList.unshift(archiveItem);
                 saveArchives();
 
-                // 重置當前清單
                 let initial = {};
                 planData.forEach(item => { initial[item.day] = { completed: false, date: '' }; });
                 progressState = initial;
@@ -255,9 +264,10 @@
                 }
             });
             const percent = Math.round((completedCount / 30) * 100);
-            document.getElementById('progressBar').style.width = `${percent}\%`; document.getElementById('progressText').innerText = `已完成 ${completedCount} / 30 天 (${percent}\%)`; document.getElementById('totalSteps').innerText = `累積: ${totalStepsCount.toLocaleString()} / 38,100 步`;
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').innerText = '已完成 ' + completedCount + ' / 30 天 (' + percent + '%)';
+            document.getElementById('totalSteps').innerText = '累積: ' + totalStepsCount.toLocaleString() + ' / 38,100 步';
 
-            // 顯示或隱藏新周期橫幅
             const banner = document.getElementById('newCycleBanner');
             if (completedCount >= 30) {
                 banner.classList.remove('hidden');
@@ -271,7 +281,8 @@
             const listEl = document.getElementById('dayList');
             listEl.innerHTML = '';
 
-            let nextDay = planData.find(d => !progressState[d.day]?.completed)?.day;
+            let nextDayObj = planData.find(d => !progressState[d.day] || !progressState[d.day].completed);
+            let nextDay = nextDayObj ? nextDayObj.day : null;
 
             planData.forEach(item => {
                 const state = progressState[item.day] || { completed: false, date: '' };
@@ -281,51 +292,56 @@
                 const isNext = item.day === nextDay && !state.completed;
                 const card = document.createElement('div');
                 
-                card.className = `flex items-center justify-between p-3 rounded-xl border transition-all ${
-                    state.completed 
-                        ? 'bg-emerald-50/90 border-emerald-200 shadow-sm' 
-                        : isNext
-                            ? 'bg-orange-50/40 border-orange-300 shadow-sm'
-                            : isRest 
-                                ? 'bg-slate-100/70 border-slate-200' 
-                                : 'bg-white border-slate-200 shadow-sm'
-                }`;
+                let bgClass = 'bg-white border-slate-200 shadow-sm';
+                if (state.completed) {
+                    bgClass = 'bg-emerald-50/90 border-emerald-200 shadow-sm';
+                } else if (isNext) {
+                    bgClass = 'bg-orange-50/40 border-orange-300 shadow-sm';
+                } else if (isRest) {
+                    bgClass = 'bg-slate-100/70 border-slate-200';
+                }
+
+                card.className = 'flex items-center justify-between p-3 rounded-xl border transition-all ' + bgClass;
+
+                let circleClass = 'border-slate-300 bg-white';
+                if (state.completed) {
+                    circleClass = 'bg-emerald-500 border-emerald-500 text-white';
+                } else if (isNext) {
+                    circleClass = 'border-orange-400 bg-white';
+                }
+
+                let badgeHtml = isRest 
+                    ? '<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-200 text-slate-600">😴 休息日</span>' 
+                    : '<span class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">🔥 ' + item.count.toLocaleString() + ' 步</span>';
+
+                if (isNext) {
+                    badgeHtml += ' <span class="text-[10px] px-1 py-0.5 rounded bg-orange-500 text-white font-bold">今日目標</span>';
+                }
+
+                let rightHtml = state.completed
+                    ? '<input type="date" value="' + state.date + '" class="text-xs text-emerald-700 font-medium bg-emerald-100/70 border border-emerald-200 rounded-lg px-2 py-1 focus:outline-none" onchange="updateDate(' + item.day + ', this.value)" onclick="event.stopPropagation()">'
+                    : '<span class="text-xs text-slate-300 pr-1">未完成</span>';
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3 cursor-pointer flex-grow select-none" onclick="toggleDay(${item.day})">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${
-                            state.completed 
-                                ? 'bg-emerald-500 border-emerald-500 text-white' 
-                                : isNext ? 'border-orange-400 bg-white' : 'border-slate-300 bg-white'
-                        }">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${circleClass}">
                             ${state.completed ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>' : ''}
                         </div>
                         <div>
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-bold text-slate-700 text-sm ${state.completed ? 'line-through text-slate-400' : ''}">第 ${item.day} 天</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                                    isRest 
-                                        ? 'bg-slate-200 text-slate-600' 
-                                        : 'bg-orange-100 text-orange-700'
-                                }">
-                                    ${isRest ? '😴 休息日' : `🔥 ${item.count.toLocaleString()} 步`}
-                                </span>
-                                ${isNext ? '<span class="text-[10px] px-1 py-0.5 rounded bg-orange-500 text-white font-bold">今日目標</span>' : ''}
+                                ${badgeHtml}
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center">
-                        ${state.completed 
-                            ? `<input type="date" value="${state.date}" class="text-xs text-emerald-700 font-medium bg-emerald-100/70 border border-emerald-200 rounded-lg px-2 py-1 focus:outline-none" onchange="updateDate(${item.day}, this.value)" onclick="event.stopPropagation()">`
-                            : `<span class="text-xs text-slate-300 pr-1">未完成</span>`
-                        }
+                        ${rightHtml}
                     </div>
                 `;
                 listEl.appendChild(card);
             });
         }
 
-        // 📅 日曆邏輯（即時讀取 progressState 與 archiveList，刪除存檔會即時同步消失）
         function changeMonth(direction) {
             calMonth += direction;
             if (calMonth > 11) { calMonth = 0; calYear++; }
@@ -334,13 +350,12 @@
         }
 
         function renderCalendar() {
-            document.getElementById('calendarMonthTitle').innerText = `${calYear}年 ${calMonth + 1}月`;
+            document.getElementById('calendarMonthTitle').innerText = calYear + '年 ' + (calMonth + 1) + '月';
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
             let dateMap = {};
             
-            // 1. 整理當前周期記錄
             planData.forEach(item => {
                 const st = progressState[item.day];
                 if (st && st.completed && st.date) {
@@ -349,7 +364,6 @@
                 }
             });
 
-            // 2. 整理未被刪除的歷史存檔記錄
             archiveList.forEach(arc => {
                 planData.forEach(item => {
                     const st = arc.records[item.day];
@@ -370,4 +384,136 @@
             }
 
             for (let day = 1; day <= totalDays; day++) {
-                const dateStr = `${calYear}-${String(calMonth + 1).padStart
+                const dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                const hasRecord = dateMap[dateStr] && dateMap[dateStr].length > 0;
+
+                const cell = document.createElement('div');
+                cell.className = "h-10 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all relative " + (hasRecord ? 'bg-emerald-500 text-white font-bold shadow-sm hover:bg-emerald-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+                
+                cell.innerHTML = '<span class="text-xs">' + day + '</span>' + (hasRecord ? '<span class="w-1.5 h-1.5 bg-white rounded-full mt-0.5"></span>' : '');
+                cell.onclick = () => showCalendarDayDetail(dateStr, dateMap[dateStr]);
+                grid.appendChild(cell);
+            }
+        }
+
+        function showCalendarDayDetail(dateStr, records) {
+            const detailEl = document.getElementById('calendarDayDetail');
+            if (!records || records.length === 0) {
+                detailEl.innerHTML = '<h3 class="text-xs font-bold text-slate-400 mb-1">📅 ' + dateStr + '</h3><p class="text-sm text-slate-500">當日沒有完成的訓練打卡。</p>';
+                return;
+            }
+
+            let html = '<h3 class="text-xs font-bold text-emerald-600 mb-2">📅 ' + dateStr + ' 訓練紀錄</h3><div class="space-y-2">';
+            records.forEach(r => {
+                html += '<div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center text-xs"><div><span class="font-bold text-slate-700">' + r.cycle + '</span><span class="text-slate-500 ml-1">第 ' + r.day + ' 天</span></div><span class="bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">' + (r.type === 'rest' ? '休息日' : r.count.toLocaleString() + ' 步') + '</span></div>';
+            });
+            html += '</div>';
+            detailEl.innerHTML = html;
+        }
+
+        function toggleArchiveEditMode() {
+            isArchiveEditMode = !isArchiveEditMode;
+            const btn = document.getElementById('btn-archive-edit');
+            if (isArchiveEditMode) {
+                btn.innerText = "✅ 完成編輯";
+                btn.className = "text-xs px-3 py-1.5 rounded-lg font-bold bg-emerald-500 text-white shadow-sm active:scale-95 transition shrink-0";
+            } else {
+                btn.innerText = "✏️ 編輯管理";
+                btn.className = "text-xs px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition shrink-0";
+            }
+            renderArchives();
+        }
+
+        function renameArchive(id) {
+            const item = archiveList.find(a => a.id === id);
+            if (!item) return;
+            const newTitle = prompt("請輸入新的周期名稱：", item.title);
+            if (newTitle && newTitle.trim() !== "") {
+                item.title = newTitle.trim();
+                saveArchives();
+                renderArchives();
+                renderCalendar();
+            }
+        }
+
+        function deleteArchive(id) {
+            const item = archiveList.find(a => a.id === id);
+            if (!item) return;
+            if (confirm("確定要刪除「" + item.title + "」的歷史紀錄嗎？\n刪除後無法復原，日曆上對應的紀錄亦會同步移除。")) {
+                archiveList = archiveList.filter(a => a.id !== id);
+                saveArchives();
+                renderArchives();
+                renderCalendar();
+                document.getElementById('calendarDayDetail').innerHTML = '<h3 class="text-xs font-bold text-slate-400 mb-1">📅 點擊上方日曆日期查看記錄</h3><p class="text-sm text-slate-600">已同步更新日曆數據。</p>';
+            }
+        }
+
+        function viewArchiveDetail(id) {
+            const item = archiveList.find(a => a.id === id);
+            if (!item) return;
+            document.getElementById('modalTitle').innerText = '🏆 ' + item.title + ' 明細';
+            
+            let html = '';
+            planData.forEach(p => {
+                const rec = item.records[p.day] || { completed: false, date: '' };
+                html += '<div class="flex justify-between items-center p-2 rounded-lg border ' + (rec.completed ? 'bg-emerald-50/70 border-emerald-100' : 'bg-slate-50 border-slate-100') + '"><div><span class="font-bold text-slate-700">第 ' + p.day + ' 天</span><span class="ml-1.5 text-slate-500">' + (p.type === 'rest' ? '休息日' : p.count + ' 步') + '</span></div><div class="text-right">' + (rec.completed ? '<span class="text-emerald-700 font-medium">✅ ' + rec.date + '</span>' : '<span class="text-slate-400">未完成</span>') + '</div></div>';
+            });
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('archiveDetailModal').classList.remove('hidden');
+        }
+
+        function closeArchiveModal() {
+            document.getElementById('archiveDetailModal').classList.add('hidden');
+        }
+
+        function renderArchives() {
+            const container = document.getElementById('archiveList');
+            container.innerHTML = '';
+
+            if (archiveList.length === 0) {
+                container.innerHTML = '<div class="bg-white p-6 rounded-xl text-center border border-slate-100 text-slate-400 text-xs">暫無歷史歸檔周期。完成 30 天後點擊「開始新周期」即可在這裏查看過往紀錄！</div>';
+                return;
+            }
+
+            archiveList.forEach(arc => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border transition-all space-y-2.5 " + (isArchiveEditMode ? 'border-orange-300 bg-orange-50/20' : 'border-slate-100');
+                
+                let actionsHtml = isArchiveEditMode 
+                    ? '<button onclick="deleteArchive(' + arc.id + ')" class="w-full py-1.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-xs shadow-xs active:scale-95 transition">🗑️ 刪除此紀錄（同步移除日曆標記）</button>'
+                    : '<button onclick="viewArchiveDetail(' + arc.id + ')" class="text-xs text-orange-600 hover:text-orange-700 font-bold px-2 py-1 rounded hover:bg-orange-50 transition">查看 30 天明細 ▶</button>';
+
+                let renameBtn = isArchiveEditMode ? '<button onclick="renameArchive(' + arc.id + ')" class="text-[11px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-medium ml-2">改名</button>' : '';
+
+                card.innerHTML = '<div class="flex justify-between items-start gap-2"><div class="flex items-center gap-1.5"><h3 class="font-bold text-slate-700 text-sm">🏆 ' + arc.title + '</h3>' + renameBtn + '</div><span class="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full shrink-0">歸檔於 ' + arc.endDate + '</span></div><div class="flex justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg"><span>完成天數: <b>' + arc.completedCount + ' / 30 天</b></span><span>累積步數: <b class="text-orange-600">' + arc.totalSteps.toLocaleString() + ' 步</b></span></div><div class="flex justify-end gap-2 pt-1">' + actionsHtml + '</div>';
+                container.appendChild(card);
+            });
+        }
+
+        function resetData() {
+            if (confirm("確定要重設當前打卡進度嗎？")) {
+                localStorage.removeItem(STORAGE_KEY_CURRENT);
+                progressState = loadProgress();
+                renderTracker();
+            }
+        }
+
+        function exportCSV() {
+            let csvContent = "\uFEFF周期,天數,類型,目標步數,完成狀態,完成日期\n";
+            planData.forEach(item => {
+                const state = progressState[item.day] || { completed: false, date: '' };
+                const typeStr = item.type === 'rest' ? '休息日' : '爬樓機';
+                csvContent += '當前周期,第' + item.day + '天,' + typeStr + ',' + item.count + ',' + (state.completed ? '已完成' : '未完成') + ',' + state.date + '\n';
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '爬樓機訓練總表_' + getTodayString() + '.csv';
+            a.click();
+        }
+
+        renderTracker();
+    </script>
+</body>
+</html>
