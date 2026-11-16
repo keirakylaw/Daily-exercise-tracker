@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>30天爬樓機訓練計劃</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-24">
+
+    <!-- 頂部標題與總進度 -->
+    <header class="bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 py-4">
+            <div class="flex justify-between items-center mb-2">
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">🔥 30天爬樓機訓練計劃</h1>
+                    <p id="saveStatus" class="text-[11px] text-orange-100 mt-0.5">● 已自動保存於本機瀏覽器</p>
+                </div>
+                <button onclick="resetData()" class="text-xs bg-white/20 hover:bg-white/30 active:scale-95 px-3 py-1.5 rounded-full transition font-medium">重設進度</button>
+            </div>
+            
+            <!-- 進度條 -->
+            <div class="bg-black/15 rounded-full h-3.5 overflow-hidden mb-2 p-0.5">
+                <div id="progressBar" class="bg-white h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            
+            <div class="flex justify-between text-xs font-medium text-orange-50">
+                <span id="progressText">已完成 0 / 30 天 (0%)</span>
+                <span id="totalSteps">累積步數: 0 / 38,100 步</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-md mx-auto px-4 mt-4">
+        
+        <!-- 控制與篩選列 -->
+        <div class="flex justify-between items-center mb-4 bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+            <div class="flex gap-1.5">
+                <button onclick="filterDays('all')" id="btn-all" class="text-xs px-3 py-1.5 rounded-lg font-medium bg-orange-500 text-white transition">全部 (30)</button>
+                <button onclick="filterDays('active')" id="btn-active" class="text-xs px-3 py-1.5 rounded-lg font-medium bg-slate-100 text-slate-600 transition">未完成</button>
+            </div>
+            <button onclick="exportCSV()" class="text-xs bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                📥 匯出CSV
+            </button>
+        </div>
+
+        <p class="text-[11px] text-slate-400 mb-3 px-1 flex justify-between">
+            <span>👆 點擊左側圓圈打卡並自動記錄今日日期</span>
+            <span>📅 點擊右側日期可微調</span>
+        </p>
+
+        <!-- 列表容器 -->
+        <div id="dayList" class="space-y-2.5"></div>
+    </main>
+
+    <script>
+        const planData = [
+            { day: 1, type: 'steps', count: 1000 },
+            { day: 2, type: 'steps', count: 1100 },
+            { day: 3, type: 'rest', count: 0 },
+            { day: 4, type: 'steps', count: 1200 },
+            { day: 5, type: 'steps', count: 1300 },
+            { day: 6, type: 'rest', count: 0 },
+            { day: 7, type: 'steps', count: 1400 },
+            { day: 8, type: 'steps', count: 1500 },
+            { day: 9, type: 'rest', count: 0 },
+            { day: 10, type: 'steps', count: 1600 },
+            { day: 11, type: 'steps', count: 1700 },
+            { day: 12, type: 'rest', count: 0 },
+            { day: 13, type: 'steps', count: 1800 },
+            { day: 14, type: 'steps', count: 1900 },
+            { day: 15, type: 'rest', count: 0 },
+            { day: 16, type: 'steps', count: 2000 },
+            { day: 17, type: 'steps', count: 2000 },
+            { day: 18, type: 'rest', count: 0 },
+            { day: 19, type: 'steps', count: 2100 },
+            { day: 20, type: 'steps', count: 2200 },
+            { day: 21, type: 'rest', count: 0 },
+            { day: 22, type: 'steps', count: 2300 },
+            { day: 23, type: 'steps', count: 2400 },
+            { day: 24, type: 'rest', count: 0 },
+            { day: 25, type: 'steps', count: 2500 },
+            { day: 26, type: 'steps', count: 2600 },
+            { day: 27, type: 'rest', count: 0 },
+            { day: 28, type: 'steps', count: 2700 },
+            { day: 29, type: 'steps', count: 2800 },
+            { day: 30, type: 'rest', count: 0 }
+        ];
+
+        const STORAGE_KEY = 'stair_stepper_github_v1';
+        let currentFilter = 'all';
+
+        function loadProgress() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) {}
+            }
+            let initial = {};
+            planData.forEach(item => { initial[item.day] = { completed: false, date: '' }; });
+            return initial;
+        }
+
+        let progressState = loadProgress();
+
+        function saveProgress() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(progressState));
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            document.getElementById('saveStatus').innerText = `● 已自動保存 (${timeStr})`;
+        }
+
+        function getTodayString() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
+        function toggleDay(dayNum) {
+            const state = progressState[dayNum];
+            if (!state.completed) {
+                state.completed = true;
+                state.date = getTodayString();
+            } else {
+                state.completed = false;
+                state.date = '';
+            }
+            saveProgress();
+            render();
+        }
+
+        function updateDate(dayNum, newDate) {
+            if (progressState[dayNum].completed) {
+                progressState[dayNum].date = newDate;
+                saveProgress();
+            }
+        }
+
+        function filterDays(filter) {
+            currentFilter = filter;
+            document.getElementById('btn-all').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`;
+            document.getElementById('btn-active').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'active' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`;
+            render();
+        }
+
+        function updateDashboard() {
+            let completedCount = 0;
+            let totalStepsCount = 0;
+            planData.forEach(item => {
+                if (progressState[item.day] && progressState[item.day].completed) {
+                    completedCount++;
+                    if (item.type === 'steps') totalStepsCount += item.count;
+                }
+            });
+            const percent = Math.round((completedCount / 30) * 100);
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').innerText = `已完成 ${completedCount} / 30 天 (${percent}%)`;
+            document.getElementById('totalSteps').innerText = `累積步數: ${totalStepsCount.toLocaleString()} / 38,100 步`;
+        }
+
+        function render() {
+            updateDashboard();
+            const listEl = document.getElementById('dayList');
+            listEl.innerHTML = '';
+
+            let nextDay = planData.find(d => !progressState[d.day]?.completed)?.day;
+
+            planData.forEach(item => {
+                const state = progressState[item.day] || { completed: false, date: '' };
+                if (currentFilter === 'active' && state.completed) return;
+
+                const isRest = item.type === 'rest';
+                const isNext = item.day === nextDay && !state.completed;
+                const card = document.createElement('div');
+                
+                card.className = `flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                    state.completed 
+                        ? 'bg-emerald-50/90 border-emerald-200 shadow-sm' 
+                        : isNext
+                            ? 'bg-orange-50/40 border-orange-300 shadow-sm'
+                            : isRest 
+                                ? 'bg-slate-100/70 border-slate-200' 
+                                : 'bg-white border-slate-200 shadow-sm'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3.5 cursor-pointer flex-grow select-none" onclick="toggleDay(${item.day})">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${
+                            state.completed 
+                                ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                : isNext ? 'border-orange-400 bg-white' : 'border-slate-300 bg-white'
+                        }">
+                            ${state.completed ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-slate-700 ${state.completed ? 'line-through text-slate-400' : ''}">第 ${item.day} 天</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full font-medium ${
+                                    isRest 
+                                        ? 'bg-slate-200 text-slate-600' 
+                                        : 'bg-orange-100 text-orange-700'
+                                }">
+                                    ${isRest ? '😴 休息日' : `🔥 ${item.count.toLocaleString()} 步`}
+                                </span>
+                                ${isNext ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-500 text-white font-bold">今日目標</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        ${state.completed 
+                            ? `<input type="date" value="${state.date}" class="text-xs text-emerald-700 font-medium bg-emerald-100/70 border border-emerald-200 rounded-lg px-2 py-1 focus:outline-none" onchange="updateDate(${item.day}, this.value)" onclick="event.stopPropagation()">`
+                            : `<span class="text-xs text-slate-300 pr-1">未完成</span>`
+                        }
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function resetData() {
+            if (confirm("確定要重設所有打卡進度嗎？此操作無法復原。")) {
+                localStorage.removeItem(STORAGE_KEY);
+                progressState = loadProgress();
+                render();
+            }
+        }
+
+        function exportCSV() {
+            let csvContent = "\uFEFF天數,類型,目標步數,完成狀態,完成日期\n";
+            planData.forEach(item => {
+                const state = progressState[item.day] || { completed: false, date: '' };
+                const typeStr = item.type === 'rest' ? '休息日' : '爬樓機';
+                csvContent += `第${item.day}天,${typeStr},${item.count},${state.completed ? '已完成' : '未完成'},${state.date}\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `爬樓機30天訓練進度_${getTodayString()}.csv`;
+            a.click();
+        }
+
+        render();
+    </script>
+</body>
+</html>
