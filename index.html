@@ -57,7 +57,7 @@
                 </button>
             </div>
 
-            <!-- 新周期按鈕（當完成30天或想手動開新周期時顯示） -->
+            <!-- 新周期按鈕（當完成30天時顯示） -->
             <div id="newCycleBanner" class="hidden bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4 rounded-xl shadow-md text-center">
                 <h3 class="font-bold text-base mb-1">🎉 恭喜完成本輪 30 天訓練！</h3>
                 <p class="text-xs text-emerald-100 mb-3">你可以將本輪數據歸檔保存，並開始全新一輪的挑戰！</p>
@@ -80,7 +80,7 @@
                 <!-- 日曆標題控制 -->
                 <div class="flex justify-between items-center mb-4">
                     <button onclick="changeMonth(-1)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold">◀ 上月</button>
-                    <h2 id="calendarMonthTitle" class="font-bold text-slate-700 text-base">2026年3月</h2>
+                    <h2 id="calendarMonthTitle" class="font-bold text-slate-700 text-base">2026年11月</h2>
                     <button onclick="changeMonth(1)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold">下月 ▶</button>
                 </div>
 
@@ -102,9 +102,14 @@
 
         <!-- 分頁 3：歷史紀錄 -->
         <div id="view-archive" class="hidden space-y-3">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3">
-                <h2 class="font-bold text-slate-700 text-sm mb-1">📁 歷史訓練周期存檔</h2>
-                <p class="text-xs text-slate-400">所有已完成並歸檔的周期都會保存喺度，隨時可以翻閱。</p>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3 flex justify-between items-center">
+                <div>
+                    <h2 class="font-bold text-slate-700 text-sm mb-0.5">📁 歷史訓練周期存檔</h2>
+                    <p class="text-xs text-slate-400">可隨時檢視詳情、改名或刪除紀錄（同步更新日曆）。</p>
+                </div>
+                <button onclick="toggleArchiveEditMode()" id="btn-archive-edit" class="text-xs px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition shrink-0">
+                    ✏️ 編輯管理
+                </button>
             </div>
             <div id="archiveList" class="space-y-3">
                 <!-- 動態加載 -->
@@ -112,6 +117,22 @@
         </div>
 
     </main>
+
+    <!-- 歷史紀錄詳情彈窗 (Modal) -->
+    <div id="archiveDetailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-xl overflow-hidden">
+            <div class="p-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-base">周期詳情</h3>
+                <button onclick="closeArchiveModal()" class="text-white/80 hover:text-white text-xl font-bold px-2">&times;</button>
+            </div>
+            <div id="modalBody" class="p-4 overflow-y-auto space-y-2 text-xs">
+                <!-- 動態填入30天明細 -->
+            </div>
+            <div class="p-3 border-t border-slate-100 bg-slate-50 text-right">
+                <button onclick="closeArchiveModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs">關閉</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const planData = [
@@ -132,6 +153,7 @@
         
         let currentFilter = 'all';
         let currentTab = 'tracker';
+        let isArchiveEditMode = false;
         
         // 日曆檢視用變數
         let calYear = new Date().getFullYear();
@@ -162,24 +184,14 @@
             localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(progressState));
             const now = new Date();
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            document.getElementById('saveStatus').innerText = `● 已自動保存 (${timeStr})`;
-        }
-
-        function saveArchives() {
-            localStorage.setItem(STORAGE_KEY_ARCHIVE, JSON.stringify(archiveList));
-        }
-
-        function getTodayString() {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            document.getElementById('saveStatus').innerText = `● 已自動保存 (${timeStr})`; }  function saveArchives() { localStorage.setItem(STORAGE_KEY_ARCHIVE, JSON.stringify(archiveList)); }  function getTodayString() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         // 分頁切換
         function switchTab(tab) {
             currentTab = tab;
             ['tracker', 'calendar', 'archive'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
-                const btn = document.getElementById(`tab-${t}`);
+                document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab); const btn = document.getElementById(`tab-${t}`);
                 if (t === tab) {
                     btn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-white text-orange-600 shadow-sm transition";
                 } else {
@@ -213,25 +225,7 @@
         function filterDays(filter) {
             currentFilter = filter;
             document.getElementById('btn-all').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`;
-            document.getElementById('btn-active').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'active' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`;
-            renderTracker();
-        }
-
-        // 開始新周期（歸檔當前）
-        function startNewCycle() {
-            if (confirm("確定要將當前周期歸檔，並開始新的一輪 30 天訓練嗎？")) {
-                let completedCount = 0;
-                let totalStepsCount = 0;
-                planData.forEach(item => {
-                    if (progressState[item.day]?.completed) {
-                        completedCount++;
-                        if (item.type === 'steps') totalStepsCount += item.count;
-                    }
-                });
-
-                const archiveItem = {
-                    id: Date.now(),
-                    title: `第 ${archiveList.length + 1} 輪周期`,
+            document.getElementById('btn-active').className = `text-xs px-3 py-1.5 rounded-lg font-medium transition ${filter === 'active' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`; renderTracker(); }  // 開始新周期（歸檔當前） function startNewCycle() { if (confirm("確定要將當前周期歸檔，並開始新的一輪 30 天訓練嗎？")) { let completedCount = 0; let totalStepsCount = 0; planData.forEach(item => { if (progressState[item.day]?.completed) { completedCount++; if (item.type === 'steps') totalStepsCount += item.count; } });  const archiveItem = { id: Date.now(), title: `第 ${archiveList.length + 1} 輪周期`,
                     endDate: getTodayString(),
                     completedCount: completedCount,
                     totalSteps: totalStepsCount,
@@ -261,9 +255,7 @@
                 }
             });
             const percent = Math.round((completedCount / 30) * 100);
-            document.getElementById('progressBar').style.width = `${percent}%`;
-            document.getElementById('progressText').innerText = `已完成 ${completedCount} / 30 天 (${percent}%)`;
-            document.getElementById('totalSteps').innerText = `累積: ${totalStepsCount.toLocaleString()} / 38,100 步`;
+            document.getElementById('progressBar').style.width = `${percent}\%`; document.getElementById('progressText').innerText = `已完成 ${completedCount} / 30 天 (${percent}\%)`; document.getElementById('totalSteps').innerText = `累積: ${totalStepsCount.toLocaleString()} / 38,100 步`;
 
             // 顯示或隱藏新周期橫幅
             const banner = document.getElementById('newCycleBanner');
@@ -333,7 +325,7 @@
             });
         }
 
-        // 📅 日曆邏輯
+        // 📅 日曆邏輯（即時讀取 progressState 與 archiveList，刪除存檔會即時同步消失）
         function changeMonth(direction) {
             calMonth += direction;
             if (calMonth > 11) { calMonth = 0; calYear++; }
@@ -346,10 +338,9 @@
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
-            // 收集所有打卡日期（包含當前與歷史歸檔）
-            let dateMap = {}; // { 'YYYY-MM-DD': [ {title, day, count, type} ] }
+            let dateMap = {};
             
-            // 整理當前記錄
+            // 1. 整理當前周期記錄
             planData.forEach(item => {
                 const st = progressState[item.day];
                 if (st && st.completed && st.date) {
@@ -358,7 +349,7 @@
                 }
             });
 
-            // 整理歷史存檔記錄
+            // 2. 整理未被刪除的歷史存檔記錄
             archiveList.forEach(arc => {
                 planData.forEach(item => {
                     const st = arc.records[item.day];
@@ -372,119 +363,11 @@
             const firstDayIndex = new Date(calYear, calMonth, 1).getDay();
             const totalDays = new Date(calYear, calMonth + 1, 0).getDate();
 
-            // 填充空白前置格子
             for (let i = 0; i < firstDayIndex; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = "h-10";
                 grid.appendChild(emptyCell);
             }
 
-            // 填充當月日子
             for (let day = 1; day <= totalDays; day++) {
-                const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasRecord = dateMap[dateStr] && dateMap[dateStr].length > 0;
-
-                const cell = document.createElement('div');
-                cell.className = `h-10 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all relative ${
-                    hasRecord 
-                        ? 'bg-emerald-500 text-white font-bold shadow-sm hover:bg-emerald-600' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`;
-                
-                cell.innerHTML = `
-                    <span class="text-xs">${day}</span>
-                    ${hasRecord ? '<span class="w-1.5 h-1.5 bg-white rounded-full mt-0.5"></span>' : ''}
-                `;
-
-                cell.onclick = () => showCalendarDayDetail(dateStr, dateMap[dateStr]);
-                grid.appendChild(cell);
-            }
-        }
-
-        function showCalendarDayDetail(dateStr, records) {
-            const detailEl = document.getElementById('calendarDayDetail');
-            if (!records || records.length === 0) {
-                detailEl.innerHTML = `
-                    <h3 class="text-xs font-bold text-slate-400 mb-1">📅 ${dateStr}</h3>
-                    <p class="text-sm text-slate-500">當日沒有完成的訓練打卡。</p>
-                `;
-                return;
-            }
-
-            let html = `<h3 class="text-xs font-bold text-emerald-600 mb-2">📅 ${dateStr} 訓練紀錄</h3><div class="space-y-2">`;
-            records.forEach(r => {
-                html += `
-                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center text-xs">
-                        <div>
-                            <span class="font-bold text-slate-700">${r.cycle}</span>
-                            <span class="text-slate-500 ml-1">第 ${r.day} 天</span>
-                        </div>
-                        <span class="bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
-                            ${r.type === 'rest' ? '休息日' : `${r.count} 步`}
-                        </span>
-                    </div>
-                `;
-            });
-            html += `</div>`;
-            detailEl.innerHTML = html;
-        }
-
-        // 📁 歷史存檔邏輯
-        function renderArchives() {
-            const container = document.getElementById('archiveList');
-            container.innerHTML = '';
-
-            if (archiveList.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl text-center border border-slate-100 text-slate-400 text-xs">
-                        暫無歷史歸檔周期。完成 30 天後點擊「開始新周期」即可在這裏查看過往紀錄！
-                    </div>
-                `;
-                return;
-            }
-
-            archiveList.forEach(arc => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-2";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-slate-700 text-sm">🏆 ${arc.title}</h3>
-                        <span class="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">歸檔於 ${arc.endDate}</span>
-                    </div>
-                    <div class="flex justify-between text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg">
-                        <span>完成天數: <b>${arc.completedCount} / 30 天</b></span>
-                        <span>累積步數: <b class="text-orange-600">${arc.totalSteps.toLocaleString()} 步</b></span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function resetData() {
-            if (confirm("確定要重設當前打卡進度嗎？")) {
-                localStorage.removeItem(STORAGE_KEY_CURRENT);
-                progressState = loadProgress();
-                renderTracker();
-            }
-        }
-
-        function exportCSV() {
-            let csvContent = "\uFEFF周期,天數,類型,目標步數,完成狀態,完成日期\n";
-            planData.forEach(item => {
-                const state = progressState[item.day] || { completed: false, date: '' };
-                const typeStr = item.type === 'rest' ? '休息日' : '爬樓機';
-                csvContent += `當前周期,第${item.day}天,${typeStr},${item.count},${state.completed ? '已完成' : '未完成'},${state.date}\n`;
-            });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `爬樓機訓練總表_${getTodayString()}.csv`;
-            a.click();
-        }
-
-        // 初始化
-        renderTracker();
-    </script>
-</body>
-</html>
+                const dateStr = `${calYear}-${String(calMonth + 1).padStart
